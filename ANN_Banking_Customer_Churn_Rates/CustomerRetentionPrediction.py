@@ -17,8 +17,6 @@ pd.set_option('display.max_columns', None)
 x = df.iloc[:, 3:13].values
 y = df.iloc[:, 13].values
 
-x[0]
-
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 
@@ -99,6 +97,8 @@ from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
 new_prediction = classifier.model.predict(sc.fit_transform(np.array([0, 0, 600, 1,  40, 3, 60000, 2, 1, 1, 50000]).reshape(-1, x_test.shape[1])))
 
-new_prediction = new_prediction > 0.5
-
-new_prediction
+if (new_prediction > 0.60) > True:
+    print("Client will remain with the bank with probability: ", round(new_prediction.reshape(1)[0], 3))
+    
+else:
+    print("Client will leave bank with probability: ", round(new_prediction.reshape(1)[0], 3))
