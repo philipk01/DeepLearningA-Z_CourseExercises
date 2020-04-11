@@ -1,50 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Sep 19 19:21:50 2019
+used:
+    https://machinelearningmastery.com/columntransformer-for-numerical-and-categorical-data/0
 
-@author: phili
+Created on Wed Apr  8 10:21:49 2020
+
+@author: philipk01
 """
-
-# Importing the libraries
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-
-# Part 1
-# Importing the dataset
-dataset = pd.read_csv('Data/Churn_Modelling.csv')
-X = dataset.iloc[:, 3:13].values
-y = dataset.iloc[:, 13].values
-
-# Encoding categorical data
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-# encode Country
-labelencoder_X_1 = LabelEncoder()
-X[:, 1] = labelencoder_X_1.fit_transform(X[:, 1])
-# encode Gender
-labelencoder_X_2 = LabelEncoder()
-X[:, 2] = labelencoder_X_2.fit_transform(X[:, 2])
-
-# dummy variables; categorical variables are not ordinale, i.e., no relational order between the categories
-# create dummy variables
-ohe = OneHotEncoder(categorical_features = [1])
-X = ohe.fit_transform(X).toarray()
-# remove first dummy variable to avoid dummy variable trap
-X = X[:, 1:]
-
-
-# Splitting the dataset into the Training set and Test set
-#from sklearn.cross_validation import train_test_split # obsolete
-from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
-
-# Feature Scaling
 from sklearn.preprocessing import StandardScaler
-sc = StandardScaler()
-X_train = sc.fit_transform(X_train)
-X_test = sc.transform(X_test)
+import numpy as np
 
-# Part 2
+import pandas as pd
+df = pd.read_csv('Churn_Modelling.csv')
+pd.set_option('display.max_columns', None)
+
+x = df.iloc[:, 3:13].values
+y = df.iloc[:, 13].values
+
+x[0]
+
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+
+#transformer = ColumnTransformer(transformers=[('cat', OneHotEncoder(drop='first'), [1, 2])], remainder='passthrough')
+t = [('cat', OneHotEncoder(drop='first'), [1, 2]), ('num', StandardScaler(), [0, 3, 4, 5, 6, 7, 8, 9])]
+
+transformer = ColumnTransformer(t, remainder='passthrough')
+
+# transform training data
+x = transformer.fit_transform(x)
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 0)
+
+# BUILD MODEL
 import keras
 # 2 modules needed
 # Sequential model; to initialize ANN
@@ -52,38 +41,32 @@ from keras.models import Sequential
 # Dense module to build ANN layers
 from keras.layers import Dense # initializes weights
 
-# initialize ANN; classificaiton problem
-classifier = Sequential() # ANN model
+# combine Keras Sci-kit (Need Keras wrapper)
+# Keras wrapper
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import cross_val_score
 
-# Add hidden layers
-# first hidden layer
-#classifier.add(Dense(units = 6, init = 'glorot_uniform', activation = 'relu', ))
-classifier.add(Dense(units=6, activation="relu", kernel_initializer="uniform", input_dim = 11))
+# start implementing cross val in Keras
+# need function, build classifier
+# local classifier
+def build_Classifier():
+    classifier = Sequential() # ANN model
+    classifier.add(Dense(units = 6, activation = 'relu', kernel_initializer = 'uniform', input_dim = 11))
+    classifier.add(Dense(units = 6, activation = 'relu', kernel_initializer = 'uniform'))
+    classifier.add(Dense(units = 1, activation = 'sigmoid', kernel_initializer = 'uniform'))
+    classifier.compile(optimizer = 'Adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+    return classifier
 
-# second hidden layer
-classifier.add(Dense(units=6, activation="relu", kernel_initializer="uniform"))
+# global classifier
+classifier = KerasClassifier(build_fn = build_Classifier, batch_size = 10, epochs = 20)
 
-# Adding the output layer
-classifier.add(Dense(units = 1, kernel_initializer = 'uniform', activation = 'sigmoid'))
+# model accuracy
+accuracies = cross_val_score(estimator = classifier, X = x_train, y = y_train, cv = 10)
+mean = accuracies.mean()
+variance = accuracies.std()
 
-# compiling the ANN
-classifier.compile(optimizer = 'Adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
 
-# Fit ANN to training set; connects ANN with data
-# classifier.fit(X_train, y_train, batch_size = 10, nb_epoch = 100)
-classifier.fit(X_train, y_train, batch_size = 10, epochs = 100)
-
-# Predicting the Test set results
-y_pred = classifier.predict(X_test)
-y_pred = (y_pred > 0.5)
-
-# validate model on test set using Con. Mat.
-# Making the Confusion Matrix
-from sklearn.metrics import confusion_matrix
-cm = confusion_matrix(y_test, y_pred)
-
-print("Model accuracy: ", round((cm[0][0]+cm[1][1])/(len(y_test)), 3)*100, '%')
-
+# make predictions on new data
 """
 predict if the customer with the following informations will leave the bank:
 
@@ -101,10 +84,21 @@ predict if the customer with the following informations will leave the bank:
 
 """
 
+classifier.fit(x_train, y_train)
 
-new_prediction = classifier.predict(sc.fit_transform(np.array([[0, 0, 600, 1,  40, 3, 60000, 2, 1, 1, 50000]])))
-new_prediction = (new_prediction > 0.5)
+# Predicting the Test set results
+y_pred = classifier.predict(x_test)
+y_pred = (y_pred > 0.5)
 
 # Making the Confusion Matrix
 from sklearn.metrics import confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
+
+# make prediction on the data above
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+new_prediction = classifier.model.predict(sc.fit_transform(np.array([0, 0, 600, 1,  40, 3, 60000, 2, 1, 1, 50000]).reshape(-1, x_test.shape[1])))
+
+new_prediction = new_prediction > 0.5
+
+new_prediction
