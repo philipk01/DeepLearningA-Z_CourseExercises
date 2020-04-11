@@ -82,11 +82,10 @@ y_pred = (y_pred > 0.5)
 from sklearn.metrics import confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
 
-print("Model accuracy: ", round((1491+225)/(2000), 3)*100, '%')
-
+print("Model accuracy: ", round((cm[0][0]+cm[1][1])/(len(y_test)), 3)*100, '%')
 
 """
-predict if the customer with the following informations will leave the bank: 
+predict if the customer with the following informations will leave the bank:
 
     Geography: France
     Credit Score: 600
