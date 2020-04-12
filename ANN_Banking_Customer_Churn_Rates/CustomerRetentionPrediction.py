@@ -39,12 +39,15 @@ from keras.models import Sequential
 # Dense module to build ANN layers
 from keras.layers import Dense # initializes weights
 
+#############################################
+######## K-Fold Validation - Sci-kit ########
+#############################################
+
 # combine Keras Sci-kit (Need Keras wrapper)
 # Keras wrapper
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import cross_val_score
 
-# start implementing cross val in Keras
 # need function, build classifier
 # local classifier
 def build_Classifier():
@@ -57,9 +60,9 @@ def build_Classifier():
 
 # global classifier
 classifier = KerasClassifier(build_fn = build_Classifier, batch_size = 10, epochs = 20)
+accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10)
 
 # model accuracy
-accuracies = cross_val_score(estimator = classifier, X = x_train, y = y_train, cv = 10)
 mean = accuracies.mean()
 variance = accuracies.std()
 
