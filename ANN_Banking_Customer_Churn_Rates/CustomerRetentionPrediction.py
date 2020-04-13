@@ -31,19 +31,17 @@ x = transformer.fit_transform(x)
 from sklearn.model_selection import train_test_split
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 0)
 
+
+#############################################
+######## K-Fold Validation - Sci-kit ########
+#############################################
 # BUILD MODEL
-import keras
-# 2 modules needed
+# combine Keras Sci-kit (Need Keras wrapper)
 # Sequential model; to initialize ANN
 from keras.models import Sequential
 # Dense module to build ANN layers
 from keras.layers import Dense # initializes weights
 
-#############################################
-######## K-Fold Validation - Sci-kit ########
-#############################################
-
-# combine Keras Sci-kit (Need Keras wrapper)
 # Keras wrapper
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import cross_val_score
@@ -58,9 +56,12 @@ def build_Classifier():
     classifier.compile(optimizer = 'Adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
     return classifier
 
+# from keras.callbacks import ModelCheckpoint
+# checkpoint = ModelCheckpoint("best_model.hdf5", monitor='loss', verbose=1, save_best_only=True, mode='auto', period=1)
+
 # global classifier
 classifier = KerasClassifier(build_fn = build_Classifier, batch_size = 10, epochs = 20)
-accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10)
+# accuracies = cross_val_score(estimator = classifier, X = x_train, y = y_train, cv = 10)
 
 # model accuracy
 mean = accuracies.mean()
@@ -101,7 +102,7 @@ sc = StandardScaler()
 new_prediction = classifier.model.predict(sc.fit_transform(np.array([0, 0, 600, 1,  40, 3, 60000, 2, 1, 1, 50000]).reshape(-1, x_test.shape[1])))
 
 if (new_prediction > 0.60) > True:
-    print("Client will remain with the bank with probability: ", round(new_prediction.reshape(1)[0], 3))
+    print("Client will remain with the bank with probability: ", round(new_prediction.reshape(1)[0] * 100, 2), "\%")
     
 else:
-    print("Client will leave bank with probability: ", round(new_prediction.reshape(1)[0], 3))
+    print("Client will leave bank with probability: ", round(100 - new_prediction.reshape(1)[0]* 100, 2),"%")
