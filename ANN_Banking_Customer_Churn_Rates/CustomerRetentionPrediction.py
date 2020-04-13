@@ -61,7 +61,7 @@ def build_Classifier():
 
 # global classifier
 classifier = KerasClassifier(build_fn = build_Classifier, batch_size = 10, epochs = 20)
-# accuracies = cross_val_score(estimator = classifier, X = x_train, y = y_train, cv = 10)
+accuracies = cross_val_score(estimator = classifier, X = x_train, y = y_train, cv = 10, n_jobs = -1)
 
 # model accuracy
 mean = accuracies.mean()
@@ -106,3 +106,20 @@ if (new_prediction > 0.60) > True:
     
 else:
     print("Client will leave bank with probability: ", round(100 - new_prediction.reshape(1)[0]* 100, 2),"%")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sc.fit_transform(np.array([0, 0, 600, 1,  40, 3, 60000, 2, 1, 1, 50000]).reshape(-1, x_test.shape[1]))
