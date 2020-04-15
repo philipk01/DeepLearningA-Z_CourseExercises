@@ -68,6 +68,11 @@ mean = accuracies.mean()
 variance = accuracies.std()
 
 
+
+print("mean: ", round(mean, 5) * 100, "%", "\nvariance: ", round(variance, 5), sep='')
+
+
+
 # make predictions on new data
 """
 predict if the customer with the following informations will leave the bank:
@@ -86,7 +91,7 @@ predict if the customer with the following informations will leave the bank:
 
 """
 
-classifier.fit(x_train, y_train)
+classifier.fit(x_train, y_train, batch_size = 10, epochs = 100)
 
 # Predicting the Test set results
 y_pred = classifier.predict(x_test)
@@ -106,20 +111,3 @@ if (new_prediction > 0.60) > True:
     
 else:
     print("Client will leave bank with probability: ", round(100 - new_prediction.reshape(1)[0]* 100, 2),"%")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-sc.fit_transform(np.array([0, 0, 600, 1,  40, 3, 60000, 2, 1, 1, 50000]).reshape(-1, x_test.shape[1]))
