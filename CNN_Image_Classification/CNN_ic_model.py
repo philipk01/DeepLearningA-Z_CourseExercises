@@ -16,7 +16,8 @@ from keras.layers import Dropout
 from keras.preprocessing.image import ImageDataGenerator
 from keras.preprocessing import image
 from keras import backend
-from keras.callbacks import Callback
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+
 
 file = 'C:\\Users\\phili\\main\\git\\DeepLearningA-Z_HandsOnCourse\\CNN_Image_Classification\\'
 
@@ -71,24 +72,40 @@ training_set = train_datagen.flow_from_directory(training_set_path,
                                                  batch_size=batch_size,
                                                  class_mode='binary')
 
-training_set.class_indices
+# training_set.class_indices
 
 test_set = test_datagen.flow_from_directory(test_set_path,
                                             target_size=input_size,
                                             batch_size=batch_size,
                                             class_mode='binary')
 
+
+es = EarlyStopping(monitor='val_loss', mode='min', verbose=1)
+mc = ModelCheckpoint('best_model.h5', monitor='val_accuracy', mode='max', verbose=1, save_best_only=True)
+
 classifier.fit_generator(training_set,
                          steps_per_epoch = 8000, # num images in training set
-                         epochs = 1,
+                         epochs = 5,
                          validation_data = test_set,
-                         validation_steps = 2000) # num images in test set
+                         validation_steps = 2000,
+                         verbose=1,
+                         callbacks=[es, mc]) # num images in test set
+
+# Load best model
+from keras.models import load_model
+saved_model = load_model('best_model.h5')
+saved_model.layers
+saved_model.summary()
+
 
 # Save model
 model_backup_path = os.path.join(script_dir, 'cat_or_dogs_model.h5')
 classifier.save(model_backup_path)
 print("Model saved to", model_backup_path)
 
+####################
+# Make prediction
+####################
 # preprocess image
 import numpy as np
 from keras.preprocessing import image
@@ -102,6 +119,10 @@ test_img = np.expand_dims(test_img, axis = 0)
 from keras.models import load_model
 model = load_model('cat_or_dogs_model.h5')
 
+model.summary()
+# model.outputs
+# model.get_weights()
+
 # prediction
 result = model.predict(test_img)
 
@@ -113,3 +134,5 @@ else:
     prediction = 'cat'
 
 print("The model predicted the image to be a", prediction)
+
+
