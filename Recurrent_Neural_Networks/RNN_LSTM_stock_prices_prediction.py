@@ -1,6 +1,23 @@
 # Recurrent Neural Network
 # Part 1 - Data Preprocessing
 
+"""
+Problem statement: 
+Stock prices can be described as a Brownian motion and that mean future prices (states) are independent from the past prices (states). Brownian motion is a random process and therefore preditions of future sates are inherently impossible.
+
+Data:
+5 years of Google stock prices, 01/2012 - 12/2016
+
+Question:
+Predict upward or downward trend for the stock price for 01/2017
+
+Approach:
+Using an LSTM model, get trend instead of looking for a specific stock price prediction.
+"""
+##############################
+# Part 1 - Preprocessing
+##############################
+
 # Importing the libraries
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,9 +44,9 @@ X_train, y_train = np.array(X_train), np.array(y_train)
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
 
-
+############################
 # Part 2 - Building the RNN
-
+############################
 # Importing the Keras libraries and packages
 from keras.models import Sequential
 from keras.layers import Dense
@@ -65,8 +82,9 @@ regressor.compile(optimizer = 'adam', loss = 'mean_squared_error')
 regressor.fit(X_train, y_train, epochs = 100, batch_size = 32)
 
 
-
+##############################
 # Part 3 - Making the predictions and visualising the results
+##############################
 
 # Getting the real stock price of 2017
 dataset_test = pd.read_csv('Google_Stock_Price_Test.csv')
