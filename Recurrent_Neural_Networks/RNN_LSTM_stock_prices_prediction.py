@@ -92,7 +92,6 @@ tb = TensorBoard('logs')
 history = regressor.fit(X_train, y_train, shuffle=True, epochs=2,
                         callbacks=[es, rlr,mcp, tb], validation_split=0.2, verbose=1, batch_size=64)
  
-
 ##############################
 # Part 3 - Making the predictions and visualising the results
 ##############################
@@ -100,8 +99,7 @@ history = regressor.fit(X_train, y_train, shuffle=True, epochs=2,
 # Getting the real stock price of 2017
 dataset_test = pd.read_csv('Google_Stock_Price_Test.csv')
 real_stock_price = dataset_test.iloc[:, 1:2].values
-dataset_test
-real_stock_price
+
 # Getting the predicted stock price for each financial day of 01/2017
 dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis = 0)
 inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60:].values
