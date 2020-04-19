@@ -43,7 +43,6 @@ X_train, y_train = np.array(X_train), np.array(y_train)
 # Reshaping
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
-
 ############################
 # Part 2 - Building the RNN
 ############################
@@ -53,7 +52,7 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Dropout
 
-# Initialising the RNN
+# Initializing the RNN
 regressor = Sequential()
 
 # Adding the first LSTM layer and some Dropout regularisation
@@ -79,7 +78,7 @@ regressor.add(Dense(units = 1))
 regressor.compile(optimizer = 'adam', loss = 'mean_squared_error')
 
 # Fitting the RNN to the Training set
-regressor.fit(X_train, y_train, epochs = 100, batch_size = 32)
+regressor.fit(X_train, y_train, epochs = 50, batch_size = 32)
 
 
 ##############################
@@ -90,7 +89,7 @@ regressor.fit(X_train, y_train, epochs = 100, batch_size = 32)
 dataset_test = pd.read_csv('Google_Stock_Price_Test.csv')
 real_stock_price = dataset_test.iloc[:, 1:2].values
 
-# Getting the predicted stock price of 2017
+# Getting the predicted stock price for each financial day of 01/2017
 dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis = 0)
 inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60:].values
 inputs = inputs.reshape(-1,1)
