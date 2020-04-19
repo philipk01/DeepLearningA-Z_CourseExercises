@@ -22,6 +22,8 @@ Using an LSTM model, get trend instead of looking for a specific stock price pre
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint, TensorBoard
+
 
 # Importing the training set
 dataset_train = pd.read_csv('Google_Stock_Price_Train.csv')
@@ -77,9 +79,19 @@ regressor.add(Dense(units = 1))
 # Compiling the RNN
 regressor.compile(optimizer = 'adam', loss = 'mean_squared_error')
 
-# Fitting the RNN to the Training set
-regressor.fit(X_train, y_train, epochs = 100, batch_size = 32)
+# # Fitting the RNN to the Training set
+# regressor.fit(X_train, y_train, epochs = 100, batch_size = 32)
 
+
+# Fitting RNN to training set using Keras Callbacks.
+es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=10, verbose=1)
+rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1)
+mcp = ModelCheckpoint(filepath='weights.h5', monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True)
+tb = TensorBoard('logs')
+ 
+history = regressor.fit(X_train, y_train, shuffle=True, epochs=2,
+                        callbacks=[es, rlr,mcp, tb], validation_split=0.2, verbose=1, batch_size=64)
+ 
 
 ##############################
 # Part 3 - Making the predictions and visualising the results
