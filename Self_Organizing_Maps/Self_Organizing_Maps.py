@@ -3,13 +3,15 @@
 Created on Tue Apr 21 11:51:31 2020
 
 @author: phili
+
+Data: credit card application data
+
+Problem: identify patterns in nonlinear high dimensional data and one of these nonlinear relationships would be fraud.
+
+Question: give a list of potential fradulent customers
+
+Approach: predict the likelihood for fraud for each customer by segmentation using SOMs.
 """
-
-# Problem: Fraud detection
-# detect potential fraud in credit card applications
-# Approach:
-# Identify patterns in high dimensional d
-
 
 # Importing the libraries
 import numpy as np
