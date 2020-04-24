@@ -62,10 +62,16 @@ mappings = som.win_map(X) # dictionary
 # frauds = mappings[(7, 2)]
 
 # concatenate when more than one outlier detected in SOM
-frauds = np.concatenate((mappings[(4, 7)], mappings[(4, 8)], mappings[(5,6)], mappings[(6, 3)]), axis = 0)
+frauds = np.concatenate((mappings[1 ,1], mappings[(2, 6)], mappings[(7, 7)]), axis = 0)
 
 frauds = sc.inverse_transform(frauds)
 
-
 # Part 2 - Unupervised --> Supervised deep learning
-# need dependant variable
+# create dependant variable for the supervised model - ANN
+
+fid = frauds[:, 0:1].reshape(-1) # CustomerID of Frauds
+# fid = fid.reshape(-1)
+
+df = dataset.sort_values(by = ['CustomerID'], ascending=True)
+
+df_frauds = df[df['CustomerID'].isin(fid)]
