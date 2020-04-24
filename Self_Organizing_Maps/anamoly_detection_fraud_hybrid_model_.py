@@ -13,7 +13,9 @@ Question: find the probability of fraud per customers
 Approach: Create a hybrid deep learning model composed of supervised and unsupervised models to predict fraud.
 """
 
+##################################################
 # Part 1 - Identify Fraudulent account using SOMs
+##################################################
 # Importing the libraries
 import numpy as np
 import matplotlib.pyplot as plt
@@ -62,16 +64,18 @@ mappings = som.win_map(X) # dictionary
 # frauds = mappings[(7, 2)]
 
 # concatenate when more than one outlier detected in SOM
-frauds = np.concatenate((mappings[1 ,1], mappings[(2, 6)], mappings[(7, 7)]), axis = 0)
+frauds = np.concatenate((mappings[2 ,1], mappings[3, 1], mappings[(4, 2)], mappings[(8, 8)]), axis = 0)
 
 frauds = sc.inverse_transform(frauds)
 
+###########################################################
 # Part 2 - Unupervised --> Supervised deep learning
 # create dependant variable for the supervised model - ANN
-
+###########################################################
 fid = frauds[:, 0:1].reshape(-1) # CustomerID of Frauds
 # fid = fid.reshape(-1)
 
 df = dataset.sort_values(by = ['CustomerID'], ascending=True)
 
 df_frauds = df[df['CustomerID'].isin(fid)]
+
