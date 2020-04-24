@@ -30,9 +30,10 @@ from sklearn.preprocessing import MinMaxScaler
 sc = MinMaxScaler(feature_range = (0, 1))
 X = sc.fit_transform(X)
 
+
 # Training the SOM
 from minisom import MiniSom
-som = MiniSom(x = 10, y = 10, input_len = 15, sigma = 1.0, learning_rate = 0.5)
+som = MiniSom(x = 10, y = 10, input_len = X.shape[1], sigma = 1.0, learning_rate = 0.5)
 som.random_weights_init(X)
 som.train_random(data = X, num_iteration = 100)
 
@@ -41,8 +42,8 @@ from pylab import bone, pcolor, colorbar, plot, show
 bone()
 pcolor(som.distance_map().T)
 colorbar()
-markers = ['o', 's']
-colors = ['r', 'g']
+markers = ['2', '1'] # [1] for NOT approved
+colors = ['r', 'y']
 for i, x in enumerate(X):
     w = som.winner(x)
     plot(w[0] + 0.5,
@@ -55,6 +56,12 @@ for i, x in enumerate(X):
 show()
 
 # Finding the frauds
-mappings = som.win_map(X)
-frauds = np.concatenate((mappings[(8,1)], mappings[(6,8)]), axis = 0)
+mappings = som.win_map(X) # dictionary
+
+# to get fraudulent accounts, get coordinates of white square from SOM map above
+frauds = mappings[(7, 2)]
+
+# # concatenate when more than one outlier detected in SOM
+# frauds = np.concatenate((mappings[(7, 2)], mappings[(6,8)]), axis = 0)
+
 frauds = sc.inverse_transform(frauds)
