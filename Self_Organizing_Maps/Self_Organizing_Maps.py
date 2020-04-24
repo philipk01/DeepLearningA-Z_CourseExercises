@@ -21,6 +21,8 @@ import pandas as pd
 # Importing the dataset
 dataset = pd.read_csv('Credit_Card_Applications.csv')
 X = dataset.iloc[:, :-1].values
+
+# not labeled data but rather for distinction between customers who were approved and those not approved
 y = dataset.iloc[:, -1].values
 
 # Feature Scaling
