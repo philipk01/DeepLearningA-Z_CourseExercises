@@ -59,12 +59,57 @@ test_set = convert(test_set)
 training_set = torch.FloatTensor(training_set)
 test_set = torch.FloatTensor(test_set)
 
+# Convert all ratings to binary input 0 (not liked), 1 (liked), from 1-5, for consistency between input and output
+# value -1 for not rated movies
+training_set[training_set == 0] = -1
+training_set[training_set == 1] = 0
+training_set[training_set == 2] = 0
+training_set[training_set >= 3] = 1
 
-# Convert all ratings to binary input 0, 1
+test_set[test_set == 0] = -1
+test_set[test_set == 1] = 0
+test_set[test_set == 2] = 0
+test_set[test_set >= 3] = 1
 
-
-
-
+# Create the Probabilistic Graphical Model
+# create the architecture of the Neural Network - the RBM
+class RBM():
+    def __init__(self, nv, nh):
+        # initialize weight and bias, the parameters that will be optimized
+        self.W = torch.randn(nh, nv)
+        # initialize bias for hidden and visible nodes; p(h | v)
+        self.a = torch.randn(1, nh) # bias of hidden nodes: p(hidden nodes | visible nodes)
+        self.b = torch.randn(1, nv) # bias of the visible nodes: p(v | h)
+        
+        # sampling p(h = 1 | v) - Gibbs sampling to approximate the log likelihood gradient
+        def sample_h(self, x):
+            # p(h | v)
+            wx = torch.mm(x, self.W.t())
+            
+            # activation function
+            activation = wx + self.a.expand_as(wx) # apply bias to each batch
+            
+            # probability h is activated given v
+            p_h_given_v = torch.sigmoid(activation)
+            return p_h_given_v, torch.bernoulli(p_h_given_v) # return bernoulli samples of h since samples are binary
+        
+        
+        def sample_v(self, y): # y corresponds to h
+            # p(h | v)
+            wy = torch.mm(y, self.W)
+            
+            # activation function
+            activation = wy + self.b.expand_as(wy) # apply bias to each batch
+            
+            # probability h is activated given v
+            p_v_given_h = torch.sigmoid(activation)
+            return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of h since samples are binary
+        
+        # Maximize Log Likelihood of the training set -> approximate gradients
+        def train(self, v0, vk, ph0, phk): # CD-K
+            self.W += torch.mm(v0.t(), ph0) - torch.mm(vk.t(), phk)
+            self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
+            self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim
 
 
 
