@@ -11,11 +11,12 @@ we need 2 data direcotries:
     2. ml-100k
 
 Question:
-Predict upward or downward trend for the stock price for 01/2017
+predict whether a user did not like a movie (input 0) or liked a movie (input 1)
 
 Approach:
-Using an LSTM model, get trend instead of looking for a specific stock price prediction.
+Use Boltzmann Machine to make the binary predictions
 
+Note: the data preprocessing step below will also be used for Autoencoders part of the course
 
 """
 import numpy as np
@@ -57,3 +58,43 @@ test_set = convert(test_set)
 # Converting the data into Torch tensors
 training_set = torch.FloatTensor(training_set)
 test_set = torch.FloatTensor(test_set)
+
+
+# Convert all ratings to binary input 0, 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
