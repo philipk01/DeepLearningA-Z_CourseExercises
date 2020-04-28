@@ -104,17 +104,15 @@ class RBM():
         p_v_given_h = torch.sigmoid(activation)
         return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of h since samples are binary
         
-     # Maximize Log Likelihood of the training set -> approximate gradients
+      # Maximize Log Likelihood of the training set -> approximate gradients
     def train(self, v0, vk, ph0, phk): # CD-K
-            self.W += torch.mm(v0.t(), ph0) - torch.mm(vk.t(), phk).t()
-            self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
-            self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim
-
+        self.W += (torch.mm(v0.t(),ph0) - torch.mm(vk.t(),phk)).t()
+        self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
+        self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim            
+            
 nv = len(training_set[0])
 nh = 100 # number of features to detect - tunable
-
 batch_size = 100 # tunable
-
 rbm = RBM(nv, nh)
 
 # Training the RBM
@@ -123,27 +121,38 @@ for epoch in range(1, nb_epoch + 1):
     train_loss = 0
     s = 0.
     for id_user in range(0, nb_users - batch_size, batch_size):
+
+        # output of Gibbs sampling
         vk = training_set[id_user:id_user+batch_size]
+
+        # initial ratings
         v0 = training_set[id_user:id_user+batch_size]
+
+        # initial probabilities
         ph0,_ = rbm.sample_h(v0)
+        
+        # k steps of CD - Gibbs chain, i.e., k steps of random walk
         for k in range(10):
             _,hk = rbm.sample_h(vk)
             _,vk = rbm.sample_v(hk)
-            vk[v0<0] = v0[v0<0]
+            vk[v0<0] = v0[v0<0] # don't update -1 ratings
         phk,_ = rbm.sample_h(vk)
-        # rbm.train(v0, vk, ph0, phk)
+        rbm.train(v0, vk, ph0, phk)
         train_loss += torch.mean(torch.abs(v0[v0>=0] - vk[v0>=0]))
         s += 1.
     print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
 
+# Test the RBM model
+test_loss = 0
+s = 0.
+for id_user in range(nb_users):
+    v = training_set[id_user:id_user + 1] # to activate neurons of RBM
+    vt = test_set[id_user:id_user + 1]
 
-
-
-
-
-
-
-
-
-
-
+    # k steps of CD - Gibbs chain, i.e., k steps of random walk
+    if len(vt[vt >= 0]) > 0:
+        _,h = rbm.sample_h(v)
+        _,v = rbm.sample_v(h) # predicted ratings
+        test_loss += torch.mean(torch.abs(vt[vt >= 0] - v[vt >= 0]))
+        s += 1.
+print('Test loss: '+str(test_loss/s))
