@@ -137,29 +137,6 @@ for epoch in range(1, nb_epoch + 1):
     print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
 
 
-training_set.shape
-
-
-
-g = training_set[id_user:id_user+batch_size]
-
-
-nb_users 
-nb_users - batch_size
-
-
-
-t = rbm.sample_h(v0)
-len(t[0])
-
-
-
-
-
-
-
-
-
 
 
 
