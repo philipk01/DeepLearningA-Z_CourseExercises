@@ -106,7 +106,7 @@ class RBM():
         
      # Maximize Log Likelihood of the training set -> approximate gradients
     def train(self, v0, vk, ph0, phk): # CD-K
-            self.W += torch.mm(v0.t(), ph0) - torch.mm(vk.t(), phk)
+            self.W += torch.mm(v0.t(), ph0) - torch.mm(vk.t(), phk).t()
             self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
             self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim
 
@@ -131,18 +131,26 @@ for epoch in range(1, nb_epoch + 1):
             _,vk = rbm.sample_v(hk)
             vk[v0<0] = v0[v0<0]
         phk,_ = rbm.sample_h(vk)
-        rbm.train(v0, vk, ph0, phk)
+        # rbm.train(v0, vk, ph0, phk)
         train_loss += torch.mean(torch.abs(v0[v0>=0] - vk[v0>=0]))
         s += 1.
     print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
 
 
+training_set.shape
 
 
 
+g = training_set[id_user:id_user+batch_size]
+
+
+nb_users 
+nb_users - batch_size
 
 
 
+t = rbm.sample_h(v0)
+len(t[0])
 
 
 
