@@ -82,40 +82,59 @@ class RBM():
         self.b = torch.randn(1, nv) # bias of the visible nodes: p(v | h)
         
         # sampling p(h = 1 | v) - Gibbs sampling to approximate the log likelihood gradient
-        def sample_h(self, x):
-            # p(h | v)
-            wx = torch.mm(x, self.W.t())
-            
-            # activation function
-            activation = wx + self.a.expand_as(wx) # apply bias to each batch
-            
-            # probability h is activated given v
-            p_h_given_v = torch.sigmoid(activation)
-            return p_h_given_v, torch.bernoulli(p_h_given_v) # return bernoulli samples of h since samples are binary
+    def sample_h(self, x):
+        # p(h | v)
+        wx = torch.mm(x, self.W.t())
         
+        # activation function
+        activation = wx + self.a.expand_as(wx) # apply bias to each batch
         
-        def sample_v(self, y): # y corresponds to h
-            # p(h | v)
-            wy = torch.mm(y, self.W)
-            
-            # activation function
-            activation = wy + self.b.expand_as(wy) # apply bias to each batch
-            
-            # probability h is activated given v
-            p_v_given_h = torch.sigmoid(activation)
-            return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of h since samples are binary
+        # probability h is activated given v
+        p_h_given_v = torch.sigmoid(activation)
+        return p_h_given_v, torch.bernoulli(p_h_given_v) # return bernoulli samples of h since samples are binary
         
-        # Maximize Log Likelihood of the training set -> approximate gradients
-        def train(self, v0, vk, ph0, phk): # CD-K
+    def sample_v(self, y): # y corresponds to h
+        # p(h | v)
+        wy = torch.mm(y, self.W)
+        
+        # activation function
+        activation = wy + self.b.expand_as(wy) # apply bias to each batch
+        
+        # probability h is activated given v
+        p_v_given_h = torch.sigmoid(activation)
+        return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of h since samples are binary
+        
+     # Maximize Log Likelihood of the training set -> approximate gradients
+    def train(self, v0, vk, ph0, phk): # CD-K
             self.W += torch.mm(v0.t(), ph0) - torch.mm(vk.t(), phk)
             self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
             self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim
 
+nv = len(training_set[0])
+nh = 100 # number of features to detect - tunable
 
+batch_size = 100 # tunable
 
+rbm = RBM(nv, nh)
 
-
-
+# Training the RBM
+nb_epoch = 10
+for epoch in range(1, nb_epoch + 1):
+    train_loss = 0
+    s = 0.
+    for id_user in range(0, nb_users - batch_size, batch_size):
+        vk = training_set[id_user:id_user+batch_size]
+        v0 = training_set[id_user:id_user+batch_size]
+        ph0,_ = rbm.sample_h(v0)
+        for k in range(10):
+            _,hk = rbm.sample_h(vk)
+            _,vk = rbm.sample_v(hk)
+            vk[v0<0] = v0[v0<0]
+        phk,_ = rbm.sample_h(vk)
+        rbm.train(v0, vk, ph0, phk)
+        train_loss += torch.mean(torch.abs(v0[v0>=0] - vk[v0>=0]))
+        s += 1.
+    print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
 
 
 
