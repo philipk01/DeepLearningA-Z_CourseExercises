@@ -4,7 +4,6 @@ Created on Mon Apr 27 08:11:06 2020
 
 @author: phili
 
-
 Data: MovieLens from GroupLens (https://grouplens.org/datasets/movielens/)
 we need 2 data direcotries:
     1. ml-1m
@@ -17,7 +16,6 @@ Approach:
 Implement a Stacked AutoEncoders model with PyTorch
 
 Note: the data preprocessing step below will also be used for Autoencoders part of the course
-
 """
 import numpy as np
 import pandas as pd
@@ -28,9 +26,9 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
-movies = pd.read_csv('ml-1m/movies.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
-users = pd.read_csv('ml-1m/users.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
-ratings = pd.read_csv('ml-1m/ratings.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
+# movies = pd.read_csv('ml-1m/movies.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
+# users = pd.read_csv('ml-1m/users.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
+# ratings = pd.read_csv('ml-1m/ratings.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 
 # Preparing the training set and the test set - k-test fold left for autoencoders, hence only 1 set
 training_set = pd.read_csv('ml-100k/u1.base', delimiter = '\t')
@@ -59,100 +57,48 @@ test_set = convert(test_set)
 training_set = torch.FloatTensor(training_set)
 test_set = torch.FloatTensor(test_set)
 
-# Convert all ratings to binary input 0 (not liked), 1 (liked), from 1-5, for consistency between input and output
-# value -1 for not rated movies
-training_set[training_set == 0] = -1
-training_set[training_set == 1] = 0
-training_set[training_set == 2] = 0
-training_set[training_set >= 3] = 1
-
-test_set[test_set == 0] = -1
-test_set[test_set == 1] = 0
-test_set[test_set == 2] = 0
-test_set[test_set >= 3] = 1
-
-# Create the Probabilistic Graphical Model
-# create the architecture of the Neural Network - the RBM
-class RBM():
-    def __init__(self, nv, nh):
-        # initialize weight and bias, the parameters that will be optimized
-        self.W = torch.randn(nh, nv)
-        # initialize bias for hidden and visible nodes; p(h | v)
-        self.a = torch.randn(1, nh) # bias of hidden nodes: p(hidden nodes | visible nodes)
-        self.b = torch.randn(1, nv) # bias of the visible nodes: p(v | h)
-        
-        # sampling p(h = 1 | v) - Gibbs sampling to approximate the log likelihood gradient
-    def sample_h(self, x):
-        # p(h | v)
-        wx = torch.mm(x, self.W.t())
-        
+class SAE(nn.Module):
+    def __init__(self, ):
+        super(SAE, self).__init__()
+        # full connection of NN
+        self.fc1 = nn.Linear(nb_movies, 20) # tunable value 20
+        self.fc2 = nn.Linear(20, 10)
+        self.fc3 = nn.Linear(10, 20)
+        self.fc4 = nn.Linear(20, nb_movies)
         # activation function
-        activation = wx + self.a.expand_as(wx) # apply bias to each batch
-        
-        # probability h is activated given v
-        p_h_given_v = torch.sigmoid(activation)
-        return p_h_given_v, torch.bernoulli(p_h_given_v) # return bernoulli samples of h since samples are binary
-        
-    def sample_v(self, y): # y corresponds to h
-        # p(h | v)
-        wy = torch.mm(y, self.W)
-        
-        # activation function
-        activation = wy + self.b.expand_as(wy) # apply bias to each batch
-        
-        # probability h is activated given v
-        p_v_given_h = torch.sigmoid(activation)
-        return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of h since samples are binary
-        
-      # Maximize Log Likelihood of the training set -> approximate gradients
-    def train(self, v0, vk, ph0, phk): # CD-K
-        self.W += (torch.mm(v0.t(),ph0) - torch.mm(vk.t(),phk)).t()
-        self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
-        self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim            
-            
-nv = len(training_set[0])
-nh = 100 # number of features to detect - tunable
-batch_size = 100 # tunable
-rbm = RBM(nv, nh)
+        self.activation = nn.Sigmoid()
 
-# Training the RBM
-nb_epoch = 10
+    def forward(self, x):
+        # encoding
+        x = self.activation(self.fc1(x)) # first encoded vector
+        x = self.activation(self.fc2(x))
+        # decoding, 10 elements to 20
+        x = self.activation(self.fc3(x))
+        # decode to get reconstructed input vector
+        x = self.fc4(x)
+        return x
+
+sae = SAE()
+criterion = nn.MSELoss()
+optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5)
+
+# Training the SAE
+nb_epoch = 200
 for epoch in range(1, nb_epoch + 1):
     train_loss = 0
     s = 0.
-    for id_user in range(0, nb_users - batch_size, batch_size):
-
-        # output of Gibbs sampling
-        vk = training_set[id_user:id_user+batch_size]
-
-        # initial ratings
-        v0 = training_set[id_user:id_user+batch_size]
-
-        # initial probabilities
-        ph0,_ = rbm.sample_h(v0)
-        
-        # k steps of CD - Gibbs chain, i.e., k steps of random walk
-        for k in range(10):
-            _,hk = rbm.sample_h(vk)
-            _,vk = rbm.sample_v(hk)
-            vk[v0<0] = v0[v0<0] # don't update -1 ratings
-        phk,_ = rbm.sample_h(vk)
-        rbm.train(v0, vk, ph0, phk)
-        train_loss += torch.mean(torch.abs(v0[v0>=0] - vk[v0>=0]))
-        s += 1.
+    for id_user in range(nb_users):
+        input = Variable(training_set[id_user]).unsqueeze(0)
+        target = input.clone()
+        if torch.sum(target.data > 0) > 0:
+            output = sae(input)
+            target.require_grad = False
+            output[target == 0] = 0
+            loss = criterion(output, target)
+            mean_corrector = nb_movies/float(torch.sum(target.data > 0) + 1e-10)
+            loss.backward()
+#             train_loss += np.sqrt(loss.data[0]*mean_corrector)
+            train_loss += np.sqrt(loss.item() * mean_corrector)
+            s += 1.
+            optimizer.step()
     print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
-
-# Test the RBM model
-test_loss = 0
-s = 0.
-for id_user in range(nb_users):
-    v = training_set[id_user:id_user + 1] # to activate neurons of RBM
-    vt = test_set[id_user:id_user + 1]
-
-    # k steps of CD - Gibbs chain, i.e., k steps of random walk
-    if len(vt[vt >= 0]) > 0:
-        _,h = rbm.sample_h(v)
-        _,v = rbm.sample_v(h) # predicted ratings
-        test_loss += torch.mean(torch.abs(vt[vt >= 0] - v[vt >= 0]))
-        s += 1.
-print('Test loss: '+str(test_loss/s))
