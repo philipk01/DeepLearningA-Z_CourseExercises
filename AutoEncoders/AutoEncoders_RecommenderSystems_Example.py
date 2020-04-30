@@ -111,7 +111,6 @@ for id_user in range(nb_users):
     target = Variable(test_set[id_user]).unsqueeze(0)
     if torch.sum(target.data > 0) > 0:
         output = sae(input)
-        output.shape
         target.require_grad = False
         output[target == 0] = 0
         loss = criterion(output, target)
