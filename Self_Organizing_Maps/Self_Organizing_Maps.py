@@ -6,7 +6,7 @@ Created on Tue Apr 21 11:51:31 2020
 
 Data: credit card application data
 
-Problem: identify patterns in nonlinear high dimensional data and one of these nonlinear relationships would be fraud.
+Problem: identify patterns in nonlinear high dimensional data where one of these nonlinear relationships would be fraud.
 
 Question: give a list of potential fradulent customers
 
