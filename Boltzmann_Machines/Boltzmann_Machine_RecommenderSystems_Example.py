@@ -4,7 +4,6 @@ Created on Mon Apr 27 08:11:06 2020
 
 @author: phili
 
-
 Data: MovieLens from GroupLens (https://grouplens.org/datasets/movielens/)
 we need 2 data direcotries:
     1. ml-1m
@@ -16,8 +15,7 @@ predict whether a user did not like a movie (input 0) or liked a movie (input 1)
 Approach:
 Use Boltzmann Machine to make the binary predictions
 
-Note: the data preprocessing step below will also be used for Autoencoders part of the course
-
+Note: the data preprocessing step below will also be used for Autoencoders part exercise
 """
 import numpy as np
 import pandas as pd
@@ -26,21 +24,36 @@ import torch.nn as nn
 import torch.nn.parallel
 import torch.optim as optim
 import torch.utils.data
-from torch.autograd import Variable
+from torch.autograd import Variable # for Stochastic Gradient Descent
 
+# not used in this example, here only to show the data content
 movies = pd.read_csv('ml-1m/movies.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 users = pd.read_csv('ml-1m/users.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 ratings = pd.read_csv('ml-1m/ratings.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 
-# Preparing the training set and the test set - k-test fold left for autoencoders, hence only 1 set
+# Preparing the training set and the test set - k-test fold left for autoencoders, hence only 1 set used here - u1
+# Columns: users Id - movie Id - rating values (1-5) - timestamp (not used)
 training_set = pd.read_csv('ml-100k/u1.base', delimiter = '\t')
 training_set = np.array(training_set, dtype = 'int')
 test_set = pd.read_csv('ml-100k/u1.test', delimiter = '\t')
 test_set = np.array(test_set, dtype = 'int')
 
-# Getting the number of users and movies
+# Getting the number of users and movies to create an nb_users x nb_movies matrix of ratings
+# this way allows us to use other train-test data that might contain different values
 nb_users = int(max(max(training_set[:,0]), max(test_set[:,0])))
 nb_movies = int(max(max(training_set[:,1]), max(test_set[:,1])))
+
+
+
+
+test_set[:, 1][test_set[:, 0] == 1]
+
+
+
+
+
+
+
 
 # Converting the data into an array with users in lines and movies in columns
 def convert(data):
