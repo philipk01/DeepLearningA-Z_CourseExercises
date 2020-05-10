@@ -43,23 +43,11 @@ test_set = np.array(test_set, dtype = 'int')
 nb_users = int(max(max(training_set[:,0]), max(test_set[:,0])))
 nb_movies = int(max(max(training_set[:,1]), max(test_set[:,1])))
 
-
-
-
-test_set[:, 1][test_set[:, 0] == 1]
-
-
-
-
-
-
-
-
 # Converting the data into an array with users in lines and movies in columns
 def convert(data):
     new_data = [] # to become a list of lists - a list for each user
-    for id_users in range(1, nb_users + 1):
-        id_movies = data[:,1][data[:,0] == id_users]
+    for id_users in range(1, nb_users + 1): # user_id starts at 1
+        id_movies = data[:,1][data[:,0] == id_users] # indices of rated movies
         id_ratings = data[:,2][data[:,0] == id_users]
         ratings = np.zeros(nb_movies)
         ratings[id_movies - 1] = id_ratings
@@ -74,6 +62,10 @@ test_set = torch.FloatTensor(test_set)
 
 # Convert all ratings to binary input 0 (not liked), 1 (liked), from 1-5, for consistency between input and output
 # value -1 for not rated movies
+
+# view user_id = 1, at index 0
+training_set[0]
+
 training_set[training_set == 0] = -1
 training_set[training_set == 1] = 0
 training_set[training_set == 2] = 0
@@ -84,88 +76,115 @@ test_set[test_set == 1] = 0
 test_set[test_set == 2] = 0
 test_set[test_set >= 3] = 1
 
+# view user_id = 1, at index 0
+training_set[0]
+
 # Create the Probabilistic Graphical Model
 # create the architecture of the Neural Network - the RBM
 class RBM():
-    def __init__(self, nv, nh):
+    def __init__(self, nv, nh): # number of nodes
+        
         # initialize weight and bias, the parameters that will be optimized
         self.W = torch.randn(nh, nv)
-        # initialize bias for hidden and visible nodes; p(h | v)
-        self.a = torch.randn(1, nh) # bias of hidden nodes: p(hidden nodes | visible nodes)
-        self.b = torch.randn(1, nv) # bias of the visible nodes: p(v | h)
         
-        # sampling p(h = 1 | v) - Gibbs sampling to approximate the log likelihood gradient
+        # initialize bias for hidden nodes (h) and visible nodes (v)
+        # bias of hidden nodes: p(h | v)
+        self.a = torch.randn(1, nh) # 1 dim for batch
+        
+        # bias of the visible nodes: p(v | h)
+        self.b = torch.randn(1, nv) # 1 dim for batch
+        
+    # Sample hidden nodes - for Gibbs sampling to approximate the Log Likelihood Gradient
+    # This is the sigmoid activatoin function applied to: wx + b
     def sample_h(self, x):
-        # p(h | v)
-        wx = torch.mm(x, self.W.t())
+        wx = torch.mm(x, self.W.t()) # wx
         
-        # activation function
-        activation = wx + self.a.expand_as(wx) # apply bias to each batch
+        # wx + b
+        activation = wx + self.a.expand_as(wx) # expand dim of bias to match wx
         
-        # probability h is activated given v
         p_h_given_v = torch.sigmoid(activation)
-        return p_h_given_v, torch.bernoulli(p_h_given_v) # return bernoulli samples of h since samples are binary
         
-    def sample_v(self, y): # y corresponds to h
-        # p(h | v)
+        # Setting RBM as Bernoulli RBM; sampling p(h = 1 | v)
+        return p_h_given_v, torch.bernoulli(p_h_given_v) # return bernoulli samples of h according to p_h_given_v; vector of 0, 1
+     
+    # Sample visible nodes - for Gibbs sampling to approximate the Log Likelihood Gradient    
+    def sample_v(self, y):
         wy = torch.mm(y, self.W)
         
-        # activation function
         activation = wy + self.b.expand_as(wy) # apply bias to each batch
         
-        # probability h is activated given v
         p_v_given_h = torch.sigmoid(activation)
-        return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of h since samples are binary
         
-      # Maximize Log Likelihood of the training set -> approximate gradients
-    def train(self, v0, vk, ph0, phk): # CD-K
-        self.W += (torch.mm(v0.t(),ph0) - torch.mm(vk.t(),phk)).t()
+        # Setting RBM as Bernoulli RBM; sampling p(v = 1 | h)
+        return p_v_given_h, torch.bernoulli(p_v_given_h) # return bernoulli samples of v according to p_v_given_h; vector of 0, 1
+        
+    # Contrastive Divergence: approximate Log Likelihood Gradients by optimizing weights
+    # v0: input vector of ratings by a user
+    # vk: visible nodes after k iterations of CD
+    # ph0: vector of probabilities at first iteration where p(h = 1 | v0)
+    # phk: vector of probabilities at iteration k where p(h = 1 | vk)
+    def train(self, v0, vk, ph0, phk):  
+        
+        # Update weight parameters
+        self.W += (torch.mm(v0.t(), ph0) - torch.mm(vk.t(), phk)).t()
+        
+        # Update bias of p_v_given_h
         self.b += torch.sum((v0 - vk), 0) # 0, to keep 2 dim
+        
+        # Update bias of p_h_given_v
         self.a += torch.sum((ph0 - phk), 0) # 0, to keep 2 dim            
             
 nv = len(training_set[0])
-nh = 100 # number of features to detect - tunable
-batch_size = 100 # tunable
+
+# Tunable parameters
+nh = 100 # number of features to detect
+batch_size = 100
+nb_epoch = 10
+cd_steps = 10 # steps in Contrastive Divergence
+
+# Creat RBM Oject!!!!
 rbm = RBM(nv, nh)
 
 # Training the RBM
-nb_epoch = 10
 for epoch in range(1, nb_epoch + 1):
     train_loss = 0
-    s = 0.
+    s = 0. # counter to normalize train_loss
+    
+    # Training steps
     for id_user in range(0, nb_users - batch_size, batch_size):
 
-        # output of Gibbs sampling
-        vk = training_set[id_user:id_user+batch_size]
+        # output of Gibbs sampling, initial vector in Gibbs chain that will be updated over k iterations
+        # vk: last sample of random walk
+        vk = training_set[id_user : id_user + batch_size]
 
         # initial ratings
-        v0 = training_set[id_user:id_user+batch_size]
+        v0 = training_set[id_user : id_user + batch_size]
 
         # initial probabilities
-        ph0,_ = rbm.sample_h(v0)
+        ph0, _ = rbm.sample_h(v0)
         
         # k steps of CD - Gibbs chain, i.e., k steps of random walk
-        for k in range(10):
-            _,hk = rbm.sample_h(vk)
-            _,vk = rbm.sample_v(hk)
-            vk[v0<0] = v0[v0<0] # don't update -1 ratings
-        phk,_ = rbm.sample_h(vk)
-        rbm.train(v0, vk, ph0, phk)
-        train_loss += torch.mean(torch.abs(v0[v0>=0] - vk[v0>=0]))
+        for k in range(cd_steps):
+            _, hk = rbm.sample_h(vk) # sampling of hidden nodes
+            _, vk = rbm.sample_v(hk) # update vk
+            vk[v0 < 0] = v0[v0 < 0] # don't update -1 ratings, ratings are either -1, 0, 1
+        phk, _ = rbm.sample_h(vk)
+        rbm.train(v0, vk, ph0, phk) # update weights
+        train_loss += torch.mean(torch.abs(v0[v0 >= 0] - vk[v0 >= 0]))
         s += 1.
-    print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
+    print('epoch: '+ str(epoch) + ' loss: ' + str(train_loss / s))
 
 # Test the RBM model
 test_loss = 0
 s = 0.
 for id_user in range(nb_users):
-    v = training_set[id_user:id_user + 1] # to activate neurons of RBM
-    vt = test_set[id_user:id_user + 1]
+    v = training_set[id_user : id_user + 1] # to activate neurons of RBM
+    vt = test_set[id_user : id_user + 1]
 
     # k steps of CD - Gibbs chain, i.e., k steps of random walk
     if len(vt[vt >= 0]) > 0:
-        _,h = rbm.sample_h(v)
-        _,v = rbm.sample_v(h) # predicted ratings
+        _, h = rbm.sample_h(v)
+        _, v = rbm.sample_v(h) # predicted ratings
         test_loss += torch.mean(torch.abs(vt[vt >= 0] - v[vt >= 0]))
         s += 1.
-print('Test loss: '+str(test_loss/s))
+print('Test loss: ' + str(test_loss / s))
