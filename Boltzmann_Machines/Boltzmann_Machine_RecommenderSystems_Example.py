@@ -137,15 +137,16 @@ class RBM():
 nv = len(training_set[0])
 
 # Tunable parameters
-nh = 100 # number of features to detect
-batch_size = 100
-nb_epoch = 10
+nh = 150 # number of features to detect
+batch_size = 10
+nb_epoch = 5
 cd_steps = 10 # steps in Contrastive Divergence
 
 # Creat RBM Oject!!!!
 rbm = RBM(nv, nh)
 
 # Training the RBM
+trials = np.zeros([nb_epoch, 2])
 for epoch in range(1, nb_epoch + 1):
     train_loss = 0
     s = 0. # counter to normalize train_loss
@@ -173,6 +174,17 @@ for epoch in range(1, nb_epoch + 1):
         train_loss += torch.mean(torch.abs(v0[v0 >= 0] - vk[v0 >= 0]))
         s += 1.
     print('epoch: '+ str(epoch) + ' loss: ' + str(train_loss / s))
+    a[epoch - 1][0] = epoch
+    a[epoch - 1][1] = train_loss / s
+
+opt_index = np.where(trials == min(trials[:, 1]))[0][0]
+         
+opt_epoch = int(trials[opt_index][0])
+min_accuracy = a[min_index][1]
+
+print('Optimal epoch number', min_epoch, '\nBest accuracy', round(min_accuracy, 4) * 100, '%')
+
+
 
 # Test the RBM model
 test_loss = 0
@@ -188,3 +200,83 @@ for id_user in range(nb_users):
         test_loss += torch.mean(torch.abs(vt[vt >= 0] - v[vt >= 0]))
         s += 1.
 print('Test loss: ' + str(test_loss / s))
+
+
+       
+class train_test():
+    def __init__(self, training_set, test_set, nb_epoch, batch_size, nb_users, cd_steps):
+        self.training_set = training_set
+        self.test_set = test_set
+        self.nb_epoch = nb_epoch
+        self.batch_size = batch_size
+        self.nb_users = nb_users
+        self.cd_steps = cd_steps
+    
+    def train(self):
+        a = []
+        # Training the RBM
+        for epoch in range(1, self.nb_epoch + 1):
+            train_loss = 0
+            s = 0. # counter to normalize train_loss
+
+            # Training steps
+            for id_user in range(0, self.nb_users - self.batch_size, self.batch_size):
+
+                # output of Gibbs sampling, initial vector in Gibbs chain that will be updated over k iterations
+                # vk: last sample of random walk
+                vk = self.training_set[id_user : id_user + self.batch_size]
+
+                # initial ratings
+                v0 = self.training_set[id_user : id_user + self.batch_size]
+
+                # initial probabilities
+                ph0, _ = rbm.sample_h(v0)
+
+                # k steps of CD - Gibbs chain, i.e., k steps of random walk
+                for k in range(cd_steps):
+                    _, hk = rbm.sample_h(vk) # sampling of hidden nodes
+                    _, vk = rbm.sample_v(hk) # update vk
+                    vk[v0 < 0] = v0[v0 < 0] # don't update -1 ratings, ratings are either -1, 0, 1
+                phk, _ = rbm.sample_h(vk)
+                rbm.train(v0, vk, ph0, phk) # update weights
+                train_loss += torch.mean(torch.abs(v0[v0 >= 0] - vk[v0 >= 0]))
+                s += 1.
+            print('epoch: '+ str(epoch) + ' loss: ' + str(train_loss / s))
+            
+            return epoch, test_loss / s
+
+            
+    def test(self):
+        # Test the RBM model
+        test_loss = 0
+        s = 0.
+        for id_user in range(self.nb_users):
+            v = self.training_set[id_user : id_user + 1] # to activate neurons of RBM
+            vt = self.test_set[id_user : id_user + 1]
+
+            # k steps of CD - Gibbs chain, i.e., k steps of random walk
+            if len(vt[vt >= 0]) > 0:
+                _, h = rbm.sample_h(v)
+                _, v = rbm.sample_v(h) # predicted ratings
+                test_loss += torch.mean(torch.abs(vt[vt >= 0] - v[vt >= 0]))
+                s += 1.
+        print('Test loss: ' + str(test_loss / s))
+        return test_loss / s
+
+            
+t = train_test(training_set = training_set, test_set = test_set, nb_epoch = 10, batch_size = 100, nb_users = nb_users, cd_steps = 10)
+t.train()
+t.test()
+
+
+parameters = {'batch_size': [10, 20, 30],
+              'epochs': [100, 200, 500]}
+
+parameters['batch_size']
+
+m = []
+for i in parameters['batch_size']:
+    for j in parameters['epochs']:
+        t = train_test(training_set = training_set, test_set = test_set, nb_epoch = 10, batch_size = 100, nb_users = nb_users, cd_steps = 10)
+        t.train()
+        
