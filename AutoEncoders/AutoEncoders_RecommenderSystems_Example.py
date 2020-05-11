@@ -155,12 +155,12 @@ class SAE_2(nn.Module):
     def __init__(self, ):
         super(SAE_2, self).__init__()
         # Architecture full connection of NN
-        self.fc1 = nn.Linear(nb_movies, 30) # object of the linear class; tunable value 20
-        self.fc2 = nn.Linear(30, 20)
-        self.fc3 = nn.Linear(20, 10)
-        self.fc4 = nn.Linear(10, 20)
-        self.fc5 = nn.Linear(20, 30)
-        self.fc6 = nn.Linear(30, nb_movies)
+        self.fc1 = nn.Linear(nb_movies, 25) # object of the linear class; tunable value 20
+        self.fc2 = nn.Linear(25, 15)
+        self.fc3 = nn.Linear(15, 10)
+        self.fc4 = nn.Linear(10, 15)
+        self.fc5 = nn.Linear(15, 25)
+        self.fc6 = nn.Linear(25, nb_movies)
         # activation function
         self.activation = nn.Sigmoid() # Tunable 
 
