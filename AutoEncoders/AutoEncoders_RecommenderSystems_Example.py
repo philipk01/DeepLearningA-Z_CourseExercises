@@ -26,6 +26,8 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
+import time
+
 f_path = '/home/nezo/AI/DeepLearningA-Z_HandsOnCourse_CP/Boltzmann_Machines/'
 
 # movies = pd.read_csv(f_path + 'ml-1m/movies.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
@@ -84,6 +86,8 @@ sae = SAE()
 criterion = nn.MSELoss()
 optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
 
+start_time = time.time()
+
 # Training the SAE
 nb_epoch = 15
 for epoch in range(1, nb_epoch + 1):
@@ -95,17 +99,20 @@ for epoch in range(1, nb_epoch + 1):
         # TRY: torch.max(target.data) > 0:
         # TRY: temp = torch.nonzero(target.data)
         # TRY: temp = torch.sum(target.data > 0)
-        if torch.sum(target.data > 0) > 0: # to optimize memory, use only users who rated >= 1 movie
+        temp = torch.sum(target.data > 0)
+        if temp > 0: # to optimize memory, use only users who rated >= 1 movie
             output = sae(input) # vector of predicted ratings
             target.require_grad = False # gradient NOT computed, saves memory
             output[target == 0] = 0 # to save memory, include only originally rated movies
             loss = criterion(output, target)
-            mean_corrector = nb_movies/float(torch.sum(target.data > 0) + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
+            mean_corrector = nb_movies / float(temp + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
             loss.backward() # direction for update weights
             train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
             s += 1. # number of users raitng at least 1 movie
             optimizer.step() # update weights; intensity of updates to weights
     print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
+    
+print("--- %s seconds ---" % (time.time() - start_time))
     
 # Test the SAE model
 test_loss = 0
