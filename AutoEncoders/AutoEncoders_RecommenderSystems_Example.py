@@ -26,6 +26,8 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
+f_path = '/home/nezo/AI/DeepLearningA-Z_HandsOnCourse_CP/Boltzmann_Machines/'
+
 # movies = pd.read_csv(f_path + 'ml-1m/movies.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 # users = pd.read_csv(f_path + 'ml-1m/users.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 # ratings = pd.read_csv(f_path + 'ml-1m/ratings.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
@@ -60,13 +62,13 @@ test_set = torch.FloatTensor(test_set)
 class SAE(nn.Module):
     def __init__(self, ):
         super(SAE, self).__init__()
-        # full connection of NN
-        self.fc1 = nn.Linear(nb_movies, 20) # tunable value 20
+        # Architecture full connection of NN
+        self.fc1 = nn.Linear(nb_movies, 20) # object of the linear class; tunable value 20
         self.fc2 = nn.Linear(20, 10)
         self.fc3 = nn.Linear(10, 20)
         self.fc4 = nn.Linear(20, nb_movies)
         # activation function
-        self.activation = nn.Sigmoid()
+        self.activation = nn.Sigmoid() # Tunable 
 
     def forward(self, x):
         # encoding
@@ -75,33 +77,35 @@ class SAE(nn.Module):
         # decoding, 10 elements to 20
         x = self.activation(self.fc3(x))
         # decode to get reconstructed input vector
-        x = self.fc4(x)
+        x = self.fc4(x) # vector of predicted ratings
         return x
 
 sae = SAE()
 criterion = nn.MSELoss()
-optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5)
+optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
 
 # Training the SAE
-nb_epoch = 200
+nb_epoch = 15
 for epoch in range(1, nb_epoch + 1):
     train_loss = 0
     s = 0.
     for id_user in range(nb_users):
-        input = Variable(training_set[id_user]).unsqueeze(0)
+        input = Variable(training_set[id_user]).unsqueeze(0) # additional dim corresponding to a btach, here we have a batch containing a single input vector
         target = input.clone()
-        if torch.sum(target.data > 0) > 0:
-            output = sae(input)
-            target.require_grad = False
-            output[target == 0] = 0
+        # TRY: torch.max(target.data) > 0:
+        # TRY: temp = torch.nonzero(target.data)
+        # TRY: temp = torch.sum(target.data > 0)
+        if torch.sum(target.data > 0) > 0: # to optimize memory, use only users who rated >= 1 movie
+            output = sae(input) # vector of predicted ratings
+            target.require_grad = False # gradient NOT computed, saves memory
+            output[target == 0] = 0 # to save memory, include only originally rated movies
             loss = criterion(output, target)
-            mean_corrector = nb_movies/float(torch.sum(target.data > 0) + 1e-10)
-            loss.backward()
-#             train_loss += np.sqrt(loss.data[0]*mean_corrector)
-            train_loss += np.sqrt(loss.item() * mean_corrector)
-            s += 1.
-            optimizer.step()
-    print('epoch: '+str(epoch)+' loss: '+str(train_loss/s))
+            mean_corrector = nb_movies/float(torch.sum(target.data > 0) + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
+            loss.backward() # direction for update weights
+            train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
+            s += 1. # number of users raitng at least 1 movie
+            optimizer.step() # update weights; intensity of updates to weights
+    print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
     
 # Test the SAE model
 test_loss = 0
