@@ -34,10 +34,16 @@ f_path = '/home/nezo/AI/DeepLearningA-Z_HandsOnCourse_CP/Boltzmann_Machines/'
 # users = pd.read_csv(f_path + 'ml-1m/users.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 # ratings = pd.read_csv(f_path + 'ml-1m/ratings.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 
-# Preparing the training set and the test set - k-test fold left for autoencoders, hence only 1 set
-training_set = pd.read_csv(f_path + 'ml-100k/u1.base', delimiter = '\t')
+# # Preparing the training set and the test set - k-test fold left for autoencoders, hence only 1 set
+# training_set = pd.read_csv(f_path + 'ml-100k/u1.base', delimiter = '\t')
+# training_set = np.array(training_set, dtype = 'int')
+# test_set = pd.read_csv(f_path + 'ml-100k/u1.test', delimiter = '\t')
+# test_set = np.array(test_set, dtype = 'int')
+
+# large dataset: 1 million inputs
+training_set = pd.read_csv(f_path + 'ml-1m/training_set.csv')
 training_set = np.array(training_set, dtype = 'int')
-test_set = pd.read_csv(f_path + 'ml-100k/u1.test', delimiter = '\t')
+test_set = pd.read_csv(f_path + 'ml-1m/test_set.csv')
 test_set = np.array(test_set, dtype = 'int')
 
 # Getting the number of users and movies
@@ -81,7 +87,7 @@ class SAE(nn.Module):
         # decode to get reconstructed input vector
         x = self.fc4(x) # vector of predicted ratings
         return x
-
+    
 sae = SAE()
 criterion = nn.MSELoss()
 optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
@@ -130,3 +136,94 @@ for id_user in range(nb_users):
         test_loss += np.sqrt(loss.item() * mean_corrector)
         s += 1.
 print('test loss: '+str(test_loss/s))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SAE_2(nn.Module):
+    def __init__(self, ):
+        super(SAE_2, self).__init__()
+        # Architecture full connection of NN
+        self.fc1 = nn.Linear(nb_movies, 30) # object of the linear class; tunable value 20
+        self.fc2 = nn.Linear(30, 20)
+        self.fc3 = nn.Linear(20, 10)
+        self.fc4 = nn.Linear(10, 20)
+        self.fc5 = nn.Linear(20, 30)
+        self.fc6 = nn.Linear(30, nb_movies)
+        # activation function
+        self.activation = nn.Sigmoid() # Tunable 
+
+    def forward(self, x):
+        # encoding
+        x = self.activation(self.fc1(x))
+        x = self.activation(self.fc2(x))
+        x = self.activation(self.fc3(x))
+        x = self.activation(self.fc4(x))
+        x = self.activation(self.fc5(x))
+        # decode to get reconstructed input vector
+        x = self.fc6(x) # vector of predicted ratings
+        return x
+    
+    
+    
+sae = SAE_2()
+criterion = nn.MSELoss()
+optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
+
+start_time = time.time()
+
+# Training the SAE
+nb_epoch = 15
+for epoch in range(1, nb_epoch + 1):
+    train_loss = 0
+    s = 0.
+    for id_user in range(nb_users):
+        input = Variable(training_set[id_user]).unsqueeze(0) # additional dim corresponding to a btach, here we have a batch containing a single input vector
+        target = input.clone()
+
+        temp = torch.sum(target.data > 0)
+        if temp > 0: # to optimize memory, use only users who rated >= 1 movie
+            output = sae(input) # vector of predicted ratings
+            target.require_grad = False # gradient NOT computed, saves memory
+            output[target == 0] = 0 # to save memory, include only originally rated movies
+            loss = criterion(output, target)
+            mean_corrector = nb_movies / float(temp + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
+            loss.backward() # direction for update weights
+            train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
+            s += 1. # number of users raitng at least 1 movie
+            optimizer.step() # update weights; intensity of updates to weights
+    print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
+    
+print("--- %s seconds ---" % (time.time() - start_time))
+    
+# Test the SAE model
+test_loss = 0
+s = 0.
+for id_user in range(nb_users):
+    input = Variable(training_set[id_user]).unsqueeze(0)
+    target = Variable(test_set[id_user]).unsqueeze(0)
+    temp = torch.sum(target.data > 0)
+    if torch.sum(target.data > 0) > 0:
+        output = sae(input)
+        target.require_grad = False
+        output[target == 0] = 0
+        loss = criterion(output, target)
+        mean_corrector = nb_movies/float(temp + 1e-10)
+        test_loss += np.sqrt(loss.item() * mean_corrector)
+        s += 1.
+print('test loss: '+str(test_loss/s))
+
+
+
+
