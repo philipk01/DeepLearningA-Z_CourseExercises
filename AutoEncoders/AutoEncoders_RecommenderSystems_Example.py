@@ -28,7 +28,8 @@ from torch.autograd import Variable
 
 import time
 
-f_path = '/home/nezo/AI/DeepLearningA-Z_HandsOnCourse_CP/Boltzmann_Machines/'
+# f_path = '/home/nezo/AI/DeepLearningA-Z_HandsOnCourse_CP/Boltzmann_Machines/'
+f_path = 'C:\\Users\\phili\\main\\git\\DeepLearningA-Z_HandsOnCourse\\Boltzmann_Machines\\'
 
 # movies = pd.read_csv(f_path + 'ml-1m/movies.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
 # users = pd.read_csv(f_path + 'ml-1m/users.dat', sep = '::', header = None, engine = 'python', encoding = 'latin-1')
@@ -41,9 +42,9 @@ f_path = '/home/nezo/AI/DeepLearningA-Z_HandsOnCourse_CP/Boltzmann_Machines/'
 # test_set = np.array(test_set, dtype = 'int')
 
 # large dataset: 1 million inputs
-training_set = pd.read_csv(f_path + 'ml-1m/training_set.csv')
+training_set = pd.read_csv(f_path + 'ml-1m\\training_set.csv')
 training_set = np.array(training_set, dtype = 'int')
-test_set = pd.read_csv(f_path + 'ml-1m/test_set.csv')
+test_set = pd.read_csv(f_path + 'ml-1m\\test_set.csv')
 test_set = np.array(test_set, dtype = 'int')
 
 # Getting the number of users and movies
@@ -87,69 +88,6 @@ class SAE(nn.Module):
         # decode to get reconstructed input vector
         x = self.fc4(x) # vector of predicted ratings
         return x
-    
-sae = SAE()
-criterion = nn.MSELoss()
-optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
-
-start_time = time.time()
-
-# Training the SAE
-nb_epoch = 15
-for epoch in range(1, nb_epoch + 1):
-    train_loss = 0
-    s = 0.
-    for id_user in range(nb_users):
-        input = Variable(training_set[id_user]).unsqueeze(0) # additional dim corresponding to a btach, here we have a batch containing a single input vector
-        target = input.clone()
-        # TRY: torch.max(target.data) > 0:
-        # TRY: temp = torch.nonzero(target.data)
-        # TRY: temp = torch.sum(target.data > 0)
-        temp = torch.sum(target.data > 0)
-        if temp > 0: # to optimize memory, use only users who rated >= 1 movie
-            output = sae(input) # vector of predicted ratings
-            target.require_grad = False # gradient NOT computed, saves memory
-            output[target == 0] = 0 # to save memory, include only originally rated movies
-            loss = criterion(output, target)
-            mean_corrector = nb_movies / float(temp + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
-            loss.backward() # direction for update weights
-            train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
-            s += 1. # number of users raitng at least 1 movie
-            optimizer.step() # update weights; intensity of updates to weights
-    print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
-    
-print("--- %s seconds ---" % (time.time() - start_time))
-    
-# Test the SAE model
-test_loss = 0
-s = 0.
-for id_user in range(nb_users):
-    input = Variable(training_set[id_user]).unsqueeze(0)
-    target = Variable(test_set[id_user]).unsqueeze(0)
-    temp = torch.sum(target.data > 0)
-    if torch.sum(target.data > 0) > 0:
-        output = sae(input)
-        target.require_grad = False
-        output[target == 0] = 0
-        loss = criterion(output, target)
-        mean_corrector = nb_movies/float(temp + 1e-10)
-        test_loss += np.sqrt(loss.item() * mean_corrector)
-        s += 1.
-print('test loss: '+str(test_loss/s))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 class SAE_2(nn.Module):
     def __init__(self, ):
@@ -174,24 +112,29 @@ class SAE_2(nn.Module):
         # decode to get reconstructed input vector
         x = self.fc6(x) # vector of predicted ratings
         return x
-    
-    
-    
-sae = SAE_2()
+
+
+nb_epoch = 5
+########################################### 
+# Model 1, 4 layers
+########################################### 
+sae = SAE()
 criterion = nn.MSELoss()
 optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
 
 start_time = time.time()
 
-# Training the SAE
-nb_epoch = 15
+# Train
+# nb_epoch = 3
 for epoch in range(1, nb_epoch + 1):
     train_loss = 0
     s = 0.
     for id_user in range(nb_users):
         input = Variable(training_set[id_user]).unsqueeze(0) # additional dim corresponding to a btach, here we have a batch containing a single input vector
         target = input.clone()
-
+        # TRY: torch.max(target.data) > 0:
+        # TRY: temp = torch.nonzero(target.data)
+        # TRY: temp = torch.sum(target.data > 0)
         temp = torch.sum(target.data > 0)
         if temp > 0: # to optimize memory, use only users who rated >= 1 movie
             output = sae(input) # vector of predicted ratings
@@ -206,8 +149,8 @@ for epoch in range(1, nb_epoch + 1):
     print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
     
 print("--- %s seconds ---" % (time.time() - start_time))
-    
-# Test the SAE model
+
+# Test
 test_loss = 0
 s = 0.
 for id_user in range(nb_users):
@@ -225,5 +168,184 @@ for id_user in range(nb_users):
 print('test loss: '+str(test_loss/s))
 
 
+###########################################   
+# Model 2, 6 layers
+########################################### 
+# Train    
+sae = SAE_2()
+criterion = nn.MSELoss()
+optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
+
+start_time = time.time()
+
+# Training the SAE
+# nb_epoch = 15
+for epoch in range(1, nb_epoch + 1):
+    train_loss = 0
+    s = 0.
+    for id_user in range(nb_users):
+        input = Variable(training_set[id_user]).unsqueeze(0) # additional dim corresponding to a btach, here we have a batch containing a single input vector
+        target = input.clone()
+        temp = torch.sum(target.data > 0)
+        if temp > 0: # to optimize memory, use only users who rated >= 1 movie
+            output = sae(input) # vector of predicted ratings
+            target.require_grad = False # gradient NOT computed, saves memory
+            output[target == 0] = 0 # to save memory, include only originally rated movies
+            loss = criterion(output, target)
+            mean_corrector = nb_movies / float(temp + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
+            loss.backward() # direction for update weights
+            train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
+            s += 1. # number of users raitng at least 1 movie
+            optimizer.step() # update weights; intensity of updates to weights
+    print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
+    
+print("--- %s seconds ---" % (time.time() - start_time))
+    
+    
+# Test
+test_loss = 0
+s = 0.
+for id_user in range(nb_users):
+    input = Variable(training_set[id_user]).unsqueeze(0)
+    target = Variable(test_set[id_user]).unsqueeze(0)
+    temp = torch.sum(target.data > 0)
+    if torch.sum(target.data > 0) > 0:
+        output = sae(input)
+        target.require_grad = False
+        output[target == 0] = 0
+        loss = criterion(output, target)
+        mean_corrector = nb_movies/float(temp + 1e-10)
+        test_loss += np.sqrt(loss.item() * mean_corrector)
+        s += 1.
+print('test loss: '+str(test_loss/s))
+
+    
+###########################################   
+## GPU
+###########################################   
+# nb_epoch = 15
+
+if torch.cuda.is_available():
+    device = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc. 
+    print("Running on the GPU")
+else:
+    device = torch.device("cpu")
+    print("Running on the CPU")
+
+########################################### 
+# Model 1, 4 layers
+########################################### 
+m1 = torch.cuda.memory_allocated()
+
+sae = SAE().to(device)
+criterion = nn.MSELoss()
+optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
+
+start_time = time.time()
+
+# Train
+# nb_epoch = 3
+for epoch in range(1, nb_epoch + 1):
+    train_loss = 0
+    s = 0.
+    for id_user in range(nb_users):
+        input = Variable(training_set[id_user]).unsqueeze(0).to(device) # additional dim corresponding to a btach, here we have a batch containing a single input vector
+        target = input.clone().to(device)
+        temp = torch.sum(target.data > 0).to(device)
+
+#         input = input.to(device)
+#         input = target.to(device)
+#         temp = temp.to(device)
+        
+        if temp > 0: # to optimize memory, use only users who rated >= 1 movie
+            output = sae(input) # vector of predicted ratings
+            target.require_grad = False # gradient NOT computed, saves memory
+            output[target == 0] = 0 # to save memory, include only originally rated movies
+            loss = criterion(output, target)
+            mean_corrector = nb_movies / float(temp + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
+            loss.backward() # direction for update weights
+            train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
+            s += 1. # number of users raitng at least 1 movie
+            optimizer.step() # update weights; intensity of updates to weights
+    print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
+    
+print("--- %s seconds ---" % (time.time() - start_time))
 
 
+m2 = torch.cuda.memory_allocated()
+
+print("total memory for Model 1 on GPU: ", m2 - m1)
+
+# Test
+test_loss = 0
+s = 0.
+for id_user in range(nb_users):
+    input = Variable(training_set[id_user]).unsqueeze(0)
+    target = Variable(test_set[id_user]).unsqueeze(0)
+    temp = torch.sum(target.data > 0)
+    if torch.sum(target.data > 0) > 0:
+        output = sae(input)
+        target.require_grad = False
+        output[target == 0] = 0
+        loss = criterion(output, target)
+        mean_corrector = nb_movies/float(temp + 1e-10)
+        test_loss += np.sqrt(loss.item() * mean_corrector)
+        s += 1.
+print('test loss: '+str(test_loss/s))
+
+###########################################   
+# Model 2, 6 layers
+########################################### 
+torch.cuda.empty_cache()
+# Train    
+sae = SAE_2().to(device)
+criterion = nn.MSELoss()
+optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5) # try Adam
+
+m3 = torch.cuda.memory_allocated()
+
+start_time = time.time()
+
+# Training the SAE
+# nb_epoch = 15
+for epoch in range(1, nb_epoch + 1):
+    train_loss = 0
+    s = 0.
+    for id_user in range(nb_users):
+        input = Variable(training_set[id_user]).unsqueeze(0).to(device) # additional dim corresponding to a btach, here we have a batch containing a single input vector
+        target = input.clone().to(device)
+        temp = torch.sum(target.data > 0).to(device)
+        if temp > 0: # to optimize memory, use only users who rated >= 1 movie
+            output = sae(input).to(device) # vector of predicted ratings
+            target.require_grad = False # gradient NOT computed, saves memory
+            output[target == 0] = 0 # to save memory, include only originally rated movies
+            loss = criterion(output, target)
+            mean_corrector = nb_movies / float(temp + 1e-10) # nb_movies / nb_movies with positive ratings; +1e-10 to guaraentee that this sum != 0
+            loss.backward() # direction for update weights
+            train_loss += np.sqrt(loss.item() * mean_corrector) # item(): part of loss object that contains error
+            s += 1. # number of users raitng at least 1 movie
+            optimizer.step() # update weights; intensity of updates to weights
+    print('epoch: ' + str(epoch) + ' loss: ' + str(train_loss / s))
+    
+print("--- %s seconds ---" % (time.time() - start_time))
+    
+m4 = torch.cuda.memory_allocated()
+
+print("m3", m3, "\nm4", m4, "\ntotal memory for Model 2 on GPU: ", m4 - m3)
+    
+# Test
+test_loss = 0
+s = 0.
+for id_user in range(nb_users):
+    input = Variable(training_set[id_user]).unsqueeze(0).to(device)
+    target = Variable(test_set[id_user]).unsqueeze(0).to(device)
+    temp = torch.sum(target.data > 0).to(device)
+    if torch.sum(target.data > 0) > 0:
+        output = sae(input).to(device)
+        target.require_grad = False
+        output[target == 0] = 0
+        loss = criterion(output, target)
+        mean_corrector = nb_movies / float(temp + 1e-10)
+        test_loss += np.sqrt(loss.item() * mean_corrector)
+        s += 1.
+print('test loss: ' + str(test_loss / s))
