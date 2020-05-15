@@ -68,6 +68,7 @@ test_set = convert(test_set)
 training_set = torch.FloatTensor(training_set)
 test_set = torch.FloatTensor(test_set)
 
+# Sparse Autoencoder
 class SAE(nn.Module):
     def __init__(self, ):
         super(SAE, self).__init__()
@@ -132,9 +133,6 @@ for epoch in range(1, nb_epoch + 1):
     for id_user in range(nb_users):
         input = Variable(training_set[id_user]).unsqueeze(0) # additional dim corresponding to a btach, here we have a batch containing a single input vector
         target = input.clone()
-        # TRY: torch.max(target.data) > 0:
-        # TRY: temp = torch.nonzero(target.data)
-        # TRY: temp = torch.sum(target.data > 0)
         temp = torch.sum(target.data > 0)
         if temp > 0: # to optimize memory, use only users who rated >= 1 movie
             output = sae(input) # vector of predicted ratings
